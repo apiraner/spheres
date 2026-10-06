@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Four spheres, one point</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b1c; --glow:rgba(40,190,255,.22); --ink:#eef0f8; --muted:#9aa3bf; --panel:rgba(14,20,44,.74); --edge:rgba(238,240,248,.18); --btn-on:#eef0f8; --btn-on-ink:#0e1325;
+  color-scheme:dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(ellipse 90% 45% at 50% 62%,var(--glow),transparent 70%),var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;position:relative}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+.leftcol{position:absolute;left:14px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(360px,calc(100% - 190px));pointer-events:none}
+.leftcol>.eq{pointer-events:auto}
+.title{pointer-events:none}
+.title h1{margin:0 0 3px;line-height:1.3;font-size:clamp(13px,1.5vw,15px);font-weight:600;letter-spacing:-.01em}
+.title p{margin:0;font-size:11.5px;line-height:1.35;color:var(--muted)}
+.rightcol{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none;max-width:calc(100% - 24px)}
+.rightcol>*{pointer-events:auto}
+.eq{padding:5px 9px 6px;background:var(--panel);border:1px solid var(--edge);border-radius:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:11px}
+.eq summary{cursor:pointer;font-weight:600;font-size:11.5px}
+.eq .gen{margin:4px 0 2px;color:var(--muted);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:10.5px}
+.eqrow{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:10.5px;line-height:1.55;white-space:nowrap;font-variant-numeric:tabular-nums}
+.eqrow b{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin-right:5px}
+.spin{margin:0;padding:4px 9px 5px;display:flex;flex-direction:column;align-items:stretch;gap:4px;width:172px;box-sizing:border-box;font-size:12px;
+  background:var(--panel);border:1px solid var(--edge);border-radius:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.spin .reset{align-self:flex-end}
+#modeBox{gap:3px}
+button:disabled{opacity:.4;cursor:default}
+.steps button:disabled:hover,.reset:disabled:hover{background:transparent}
+.spinrow{display:flex;align-items:center;gap:8px}
+.spinlbl{font-weight:600;margin-right:2px}
+.speed{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.speed input{flex:1;min-width:0;width:auto;height:14px;margin:0;accent-color:#3fd5ff;cursor:pointer}
+.speed output{width:34px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.spin label{display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.spin input[type=radio]{margin:0;width:12px;height:12px;accent-color:#3fd5ff}
+.zoom{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;
+  background:var(--panel);border:1px solid var(--edge);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:15px;line-height:1;color:var(--muted);user-select:none}
+.zwrap{position:relative;width:22px;height:150px}
+.zwrap input{position:absolute;left:50%;top:50%;width:150px;height:22px;margin:0;transform:translate(-50%,-50%) rotate(-90deg);accent-color:#3fd5ff;cursor:pointer}
+.dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(780px,calc(100% - 20px));display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:14px;align-items:start;
+  background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:8px 10px 7px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.steps{display:flex;gap:4px;margin-bottom:6px;grid-column:1}
+#caption,#status{grid-column:1}
+button{font:inherit;color:var(--ink)}
+.steps button{flex:1;font-size:11.5px;background:transparent;border:1px solid var(--edge);border-radius:7px;padding:4px 2px;cursor:pointer;transition:background .15s,color .15s}
+.steps button:hover{background:var(--edge)}
+.steps button[aria-pressed="true"]{background:var(--btn-on);color:var(--btn-on-ink);border-color:var(--btn-on)}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#caption{margin:0;font-size:12px;line-height:1.35;min-height:32px}
+#status{margin:1px 0 0;font-size:11px;line-height:1.3;min-height:14px;color:var(--muted)}
+.radii{grid-column:2;grid-row:1 / span 3;margin:0;border-left:1px solid var(--edge);padding:0 0 0 14px}
+.radii summary{cursor:pointer;font-size:11.5px;font-weight:600;padding:1px 0}
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-top:5px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:6px;row-gap:0;font-size:11.5px;transition:opacity .2s}
+.row b{grid-column:1;grid-row:1;min-width:0;font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row input{grid-column:1 / -1;grid-row:2;width:100%;min-width:0;margin:0;height:14px}
+.row output{grid-column:2;grid-row:1;width:auto;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.row.off{opacity:.38}
+.reset{grid-column:1/-1;justify-self:end;font-size:11px;background:transparent;border:1px solid var(--edge);border-radius:6px;padding:2px 9px;cursor:pointer}
+.reset:hover{background:var(--edge)}
+.btns{grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px}
+.lbl{position:absolute;left:0;top:0;pointer-events:none;font-size:13px;font-weight:600;white-space:nowrap;transition:opacity .2s;text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
+@media (max-width:640px){
+  .dock{display:block}
+  .radii{margin-top:5px;border-left:0;border-top:1px solid var(--edge);padding:4px 0 0}
+}
+@media (max-width:560px){
+  .leftcol{left:8px;max-width:calc(100% - 160px)}
+  .title p{font-size:10.5px}
+  .rightcol{right:8px}
+  .spin{padding:3px 7px 4px;width:152px;font-size:11px}
+  .eqrow,.eq .gen{font-size:9px;white-space:normal}
+  .steps button{font-size:11px}
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="3D illustration: four spheres whose surfaces meet at a single target point in space"></canvas>
+<div class="leftcol">
+<div class="title">
+  <h1>Suppose that solving the "ASIC problem" could be equated with having to find a point in space. Our only method is measuring the distance to the point in question &mdash; a rather primitive device.</h1>
+  <p>Drag to rotate. Drag a coloured dot to move a centre, or the white pin to move the target.</p>
+</div>
+<details class="eq" id="eq" open>
+  <summary>Sphere equations</summary>
+  <div class="gen">(x &minus; a)&sup2; + (y &minus; b)&sup2; + (z &minus; c)&sup2; = r&sup2;</div>
+  <div id="eqRows"></div>
+</details>
+</div>
+<div class="rightcol">
+<div class="spin" id="modeBox" role="group" aria-label="Mode">
+  <span class="spinlbl">Mode</span>
+  <label><input type="radio" name="mode" value="manual" checked> Manual</label>
+  <label><input type="radio" name="mode" value="auto"> Auto: one by one</label>
+  <label><input type="radio" name="mode" value="overlap"> Auto: overlapped</label>
+  <button type="button" id="playBtn" class="reset" style="display:none">Replay</button>
+</div>
+<div class="spin" id="spin" role="group" aria-label="Rotation">
+  <div class="spinrow">
+    <span class="spinlbl">Rotation</span>
+    <label><input type="radio" name="spin" value="on"> On</label>
+    <label><input type="radio" name="spin" value="off"> Off</label>
+  </div>
+  <label class="speed">Speed <input type="range" id="spinSpeed" min="5" max="200" step="5" value="25" aria-label="Rotation speed (percent)"><output id="spinSpeedOut">25%</output></label>
+</div>
+<div class="spin" id="dwellBox">
+  <label class="speed">Zoom hold <input type="range" id="dwell" min="0" max="10" step="0.1" value="3.6" aria-label="Seconds to stay zoomed in"><output id="dwellOut">3.6 s</output></label>
+</div>
+</div>
+<div class="zoom" id="zoomBox">
+  <span aria-hidden="true">+</span>
+  <div class="zwrap"><input type="range" id="zoom" min="0" max="100" step="0.1" value="50" aria-label="Zoom"></div>
+  <span aria-hidden="true">&minus;</span>
+</div>
+<div id="labels"></div>
+<div class="dock">
+  <div class="steps" id="steps"></div>
+  <p id="caption"></p>
+  <p id="status" aria-live="polite"></p>
+  <details class="radii" id="radii" open>
+    <summary>Sphere radii</summary>
+    <div class="sliders" id="sliders"></div>
+  </details>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var V=THREE.Vector3;
+  var root=document.documentElement;
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function isDark(){
+    return true;
+  }
+
+  // ---- the problem ----
+  var P=new V(.35,.25,-.1);                       // the hidden target
+  var A=[new V(-2.3,-.7,.9),new V(2.0,-1.1,1.5),new V(.3,2.0,-1.9),new V(1.6,1.2,2.2)];   // known centres
+  var Tcur=P.clone(),Tstart=P.clone(),tBlend=0,prevStep=1,curSol=null,curBest=0,tVis=1,lastNow=performance.now();
+  var A0=A.map(function(a){return a.clone()});
+  var R0=A.map(function(a){return a.distanceTo(P)});  // exact distances to the target
+  var Rad=R0.slice();
+  var manual=[false,false,false,false];                              // radii the sliders control
+  var COL=[0x4f8dff,0x24d68a,0xf5c20a,0xff5a4f];
+  var NAMES=['A','B','C','D'];
+  var DESC=['IP','Eng Model','Tools','Corporate, Trust'];
+  var hex=function(c){return '#'+('000000'+c.toString(16)).slice(-6)};
+  var MAG=0xff5af2;
+
+  // ---- renderer ----
+  var canvas=document.getElementById('c');
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(38,1,.1,300);
+  camera.position.set(0,1.3,14);
+  camera.lookAt(0,0,0);
+  var camGoal=14, pivGoal=new V(-.3,-.2,-.3), camRate=.07, autoZoomed=false, seq=null, clockT=0, anim=null, animBusy=false, autoMode=false, animKind='';
+  scene.add(new THREE.AmbientLight(0xffffff,.75));
+  var dl=new THREE.DirectionalLight(0xffffff,.9); dl.position.set(4,6,5); scene.add(dl);
+  var dl2=new THREE.DirectionalLight(0xbfd0ff,.35); dl2.position.set(-5,-2,-4); scene.add(dl2);
+
+  var world=new THREE.Group(); scene.add(world);
+  var pivot=new THREE.Group(); world.add(pivot);
+  pivot.position.set(-.3,-.2,-.3);
+  world.rotation.set(.22,-.5,0);
+
+  // ---- space-age backdrop: a receding grid floor and a field of stars ----
+  var gridMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,extensions:{derivatives:true},
+    uniforms:{uColor:{value:new THREE.Color(0x3b5bdb)},uAlpha:{value:.6},uRadius:{value:70}},
+    vertexShader:'varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:[
+      'varying vec2 vP; uniform vec3 uColor; uniform float uAlpha; uniform float uRadius;',
+      'float lines(vec2 p,float s){ vec2 q=p/s; vec2 w=fwidth(q); vec2 g=abs(fract(q-0.5)-0.5)/w; float l=1.0-min(min(g.x,g.y),1.0); return l*(1.0-smoothstep(0.18,0.45,max(w.x,w.y))); }',
+      'void main(){',
+      '  float d=length(vP)/uRadius;',
+      '  float minor=lines(vP,0.5)*(1.0-smoothstep(0.0,0.4,d));',
+      '  float major=lines(vP,2.5)*(1.0-smoothstep(0.0,1.0,d));',
+      '  float a=(minor*0.45+major*0.95)*uAlpha;',
+      '  if(a<0.003) discard;',
+      '  gl_FragColor=vec4(uColor,a);',
+      '}'
+    ].join('\n')
+  });
+  var floor=new THREE.Mesh(new THREE.PlaneGeometry(160,160),gridMat);
+  floor.rotation.x=-Math.PI/2; floor.position.y=-5; floor.renderOrder=-2;
+  world.add(floor);
+
+  var starPos=new Float32Array(600*3);
+  for(var si=0;si<600;si++){
+    var u1=Math.random()*2-1,th=Math.random()*Math.PI*2,rr=Math.sqrt(1-u1*u1),rad=60+Math.random()*80;
+    starPos[si*3]=Math.cos(th)*rr*rad; starPos[si*3+1]=Math.abs(u1)*rad*.8+2; starPos[si*3+2]=Math.sin(th)*rr*rad;
+  }
+  var starGeo=new THREE.BufferGeometry(); starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+  var starMat=new THREE.PointsMaterial({color:0xcfe8ff,size:1.6,sizeAttenuation:false,transparent:true,opacity:.0,depthWrite:false});
+  var stars=new THREE.Points(starGeo,starMat); stars.renderOrder=-3; world.add(stars);
+
+  var inkMats=[];
+  function inkMat(){var m=new THREE.MeshBasicMaterial({color:0x161b2e});inkMats.push(m);return m}
+  function track(obj,goal){obj.userData.s=0;obj.userData.goal=goal;obj.scale.setScalar(.0001);obj.visible=false;return obj}
+
+  // ---- spheres (built at unit radius, scaled by the slider value) ----
+  var spheres=[],bodies=[],rays=[],tips=[],hits=[];
+  function ring(radius,col,opacity,segs){
+    var pts=[];for(var i=0;i<=segs;i++){var t=i/segs*Math.PI*2;pts.push(new V(Math.cos(t)*radius,0,Math.sin(t)*radius))}
+    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:opacity}));
+  }
+  function meshLines(latN,lonN,segs){
+    var pos=[],k,j,a,b,phi,t;
+    for(k=1;k<latN;k++){            // parallels
+      phi=-Math.PI/2+k*Math.PI/latN;
+      for(j=0;j<segs;j++){
+        a=j/segs*Math.PI*2; b=(j+1)/segs*Math.PI*2;
+        pos.push(Math.cos(phi)*Math.cos(a),Math.sin(phi),Math.cos(phi)*Math.sin(a),
+                 Math.cos(phi)*Math.cos(b),Math.sin(phi),Math.cos(phi)*Math.sin(b));
+      }
+    }
+    for(k=0;k<lonN;k++){            // meridians
+      t=k/lonN*Math.PI*2;
+      for(j=0;j<segs/2;j++){
+        a=-Math.PI/2+j/(segs/2)*Math.PI; b=-Math.PI/2+(j+1)/(segs/2)*Math.PI;
+        pos.push(Math.cos(a)*Math.cos(t),Math.sin(a),Math.cos(a)*Math.sin(t),
+                 Math.cos(b)*Math.cos(t),Math.sin(b),Math.cos(b)*Math.sin(t));
+      }
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    return g;
+  }
+  var meshGeo=meshLines(20,40,96);
+  function makeSphere(i){
+    var g=new THREE.Group(); g.position.copy(A[i]);
+    var body=new THREE.Group();
+    body.add(new THREE.Mesh(
+      new THREE.SphereGeometry(1,64,48),
+      new THREE.MeshLambertMaterial({color:COL[i],transparent:true,opacity:.035,depthWrite:false})
+    ));
+    body.add(new THREE.LineSegments(meshGeo,new THREE.LineBasicMaterial({color:COL[i],transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false})));
+    g.add(body);
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.1,24,16),new THREE.MeshBasicMaterial({color:COL[i]})));
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.21,24,16),new THREE.MeshBasicMaterial({color:COL[i],transparent:true,opacity:.28,depthWrite:false})));
+    var hit=new THREE.Mesh(new THREE.SphereGeometry(.34,12,8),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+    g.add(hit); hits.push(hit);
+    // radius line: from the centre toward the target, exactly one radius long
+    var rg=new THREE.BufferGeometry();
+    rg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));
+    rg.setAttribute('lineDistance',new THREE.BufferAttribute(new Float32Array(2),1));
+    var ray=new THREE.Line(rg,new THREE.LineDashedMaterial({color:COL[i],dashSize:.12,gapSize:.1}));
+    ray.frustumCulled=false;
+    g.add(ray);
+    var tip=new THREE.Mesh(new THREE.SphereGeometry(.055,16,12),new THREE.MeshBasicMaterial({color:COL[i]}));
+    g.add(tip);
+    track(g,0); pivot.add(g); spheres.push(g); bodies.push(body); rays.push(ray); tips.push(tip);
+  }
+  for(var i=0;i<4;i++)makeSphere(i);
+  var rayEnd=new V();
+  function updateRay(i){
+    rayEnd.subVectors(Tcur,A[i]);
+    var l=rayEnd.length();
+    if(l<1e-6)rayEnd.set(1,0,0); else rayEnd.divideScalar(l);
+    rayEnd.multiplyScalar(Rad[i]);
+    var pa=rays[i].geometry.attributes.position; pa.setXYZ(1,rayEnd.x,rayEnd.y,rayEnd.z); pa.needsUpdate=true;
+    var la=rays[i].geometry.attributes.lineDistance; la.setX(1,Rad[i]); la.needsUpdate=true;
+    tips[i].position.copy(rayEnd);
+  }
+
+  // ---- circles where two spheres cross (rebuilt when radii change) ----
+  var circles=[];
+  function makeCircle(i,j,minStep){
+    var m=new THREE.Mesh(new THREE.BufferGeometry(),inkMat());
+    m.userData={s:0,goal:0,i:i,j:j,min:minStep,valid:false};
+    m.scale.setScalar(.0001); m.visible=false;
+    pivot.add(m); circles.push(m);
+  }
+  makeCircle(0,1,2); makeCircle(0,2,3); makeCircle(1,2,3);
+  function updateCircle(m){
+    var u=m.userData,i=u.i,j=u.j,ri=Rad[i],rj=Rad[j];
+    var d=A[i].distanceTo(A[j]);
+    u.valid=d>1e-3 && d<ri+rj-1e-3 && d>Math.abs(ri-rj)+1e-3;
+    if(!u.valid)return;
+    var uu=new V().subVectors(A[j],A[i]).normalize();
+    var a=(ri*ri-rj*rj+d*d)/(2*d);
+    var h=Math.sqrt(Math.max(ri*ri-a*a,1e-6));
+    var c=A[i].clone().add(uu.clone().multiplyScalar(a));
+    var tmp=Math.abs(uu.y)<.9?new V(0,1,0):new V(1,0,0);
+    var v=new V().crossVectors(uu,tmp).normalize(), w=new V().crossVectors(uu,v).normalize();
+    var pts=[];
+    for(var k=0;k<96;k++){var t=k/96*Math.PI*2;pts.push(new V().addScaledVector(v,Math.cos(t)*h).addScaledVector(w,Math.sin(t)*h))}
+    m.geometry.dispose();
+    m.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),192,.03,8,true);
+    m.position.copy(c);
+    u.c=c; u.h=h; u.v=v; u.w=w;
+  }
+
+  // ---- candidate points from spheres A, B, C ----
+  function makeDot(){
+    var g=new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.12,32,24),inkMat()));
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.26,32,24),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35,depthWrite:false})));
+    track(g,0); pivot.add(g); return g;
+  }
+  var cands=[makeDot(),makeDot()];
+  function solve(){
+    var r1=Rad[0],r2=Rad[1],r3=Rad[2];
+    var d=A[0].distanceTo(A[1]);
+    if(d<1e-3)return null;
+    var ex=new V().subVectors(A[1],A[0]).divideScalar(d);
+    var v13=new V().subVectors(A[2],A[0]);
+    var ii=ex.dot(v13);
+    var ey=v13.clone().addScaledVector(ex,-ii); var jj=ey.length(); if(jj<1e-3)return null; ey.divideScalar(jj);
+    var ez=new V().crossVectors(ex,ey);
+    var x=(r1*r1-r2*r2+d*d)/(2*d);
+    var y=(r1*r1-r3*r3+ii*ii+jj*jj)/(2*jj)-(ii/jj)*x;
+    var z2=r1*r1-x*x-y*y;
+    if(z2<-1e-4)return null;
+    var z=Math.sqrt(Math.max(z2,0));
+    var base=A[0].clone().addScaledVector(ex,x).addScaledVector(ey,y);
+    return [base.clone().addScaledVector(ez,z),base.clone().addScaledVector(ez,-z)];
+  }
+
+  // ---- the target ----
+  var targetMats=[];
+  function tMat(m){m.transparent=false;m.opacity=1;targetMats.push(m);return m}
+  function makeTarget(){
+    var g=new THREE.Group(); g.position.copy(P);
+    var gem=new THREE.Mesh(new THREE.OctahedronGeometry(.25,0),
+      tMat(new THREE.MeshPhongMaterial({color:MAG,emissive:MAG,emissiveIntensity:1,flatShading:true,shininess:120})));
+    g.add(gem);
+    var gimbal=new THREE.Group();
+    for(var k=0;k<3;k++){
+      var t=new THREE.Mesh(new THREE.TorusGeometry(.42,.02,8,64),tMat(new THREE.MeshBasicMaterial({color:MAG})));
+      if(k===0)t.rotation.x=Math.PI/2; if(k===1)t.rotation.y=Math.PI/2;
+      gimbal.add(t);
+    }
+    g.add(gimbal);
+    var seg=[];
+    [[1,0,0],[0,1,0],[0,0,1]].forEach(function(ax){
+      [-1,1].forEach(function(s){
+        seg.push(new V(ax[0]*s*.5,ax[1]*s*.5,ax[2]*s*.5),new V(ax[0]*s,ax[1]*s,ax[2]*s));
+      });
+    });
+    g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg),tMat(new THREE.LineBasicMaterial({color:MAG}))));
+    var halo=new THREE.Mesh(new THREE.SphereGeometry(.6,32,24),new THREE.MeshBasicMaterial({color:MAG,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false}));
+    g.add(halo);
+    g.userData={gem:gem,gimbal:gimbal,halo:halo,s:1,goal:1};
+    pivot.add(g); return g;
+  }
+  var ptP=makeTarget();
+  var lock=0,lockGoal=0;
+
+  // the true target: a white pin at P that you can drag. The magenta diamond only shows what the spheres allow.
+  var ptT=(function(){
+    var g=new THREE.Group(); g.position.copy(P);
+    var white=new THREE.MeshBasicMaterial({color:0xffffff});
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.14,24,16),white));
+    var stem=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,1.1,8),white); stem.position.y=.55; g.add(stem);
+    var cap=new THREE.Mesh(new THREE.SphereGeometry(.065,16,12),white); cap.position.y=1.1; g.add(cap);
+    var hit=new THREE.Mesh(new THREE.SphereGeometry(.4,12,8),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+    g.add(hit); g.userData={hit:hit,s:1};
+    pivot.add(g); return g;
+  })();
+
+  // faint trail showing where the roaming target has been
+  var TN=160, hist=new Float32Array((TN+1)*3), trailPos=new Float32Array(TN*6), trailCol=new Float32Array(TN*6);
+  (function(){
+    var c=new THREE.Color(MAG);
+    for(var k=0;k<TN;k++){
+      var f0=Math.pow(1-k/TN,1.6),f1=Math.pow(1-(k+1)/TN,1.6);
+      trailCol.set([c.r*f0,c.g*f0,c.b*f0,c.r*f1,c.g*f1,c.b*f1],k*6);
+    }
+  })();
+  var trailGeo=new THREE.BufferGeometry();
+  trailGeo.setAttribute('position',new THREE.BufferAttribute(trailPos,3));
+  trailGeo.setAttribute('color',new THREE.BufferAttribute(trailCol,3));
+  var trail=new THREE.LineSegments(trailGeo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+  trail.frustumCulled=false; trail.renderOrder=1; pivot.add(trail);
+  function clearTrail(){for(var k=0;k<=TN;k++){hist[k*3]=Tcur.x;hist[k*3+1]=Tcur.y;hist[k*3+2]=Tcur.z}}
+  clearTrail();
+
+  // ---- labels ----
+  var labelsEl=document.getElementById('labels');
+  var labels=[];
+  function addLabel(text,obj,color,offset){
+    var d=document.createElement('div'); d.className='lbl'; d.textContent=text; if(color)d.style.color=color;
+    labelsEl.appendChild(d); labels.push({el:d,obj:obj,offset:offset});
+  }
+  for(i=0;i<4;i++)addLabel(NAMES[i]+' \u00b7 '+DESC[i],spheres[i],hex(COL[i]),new V(0,.22,0));
+  addLabel('?',ptP,hex(MAG),new V(0,-.45,0));
+  addLabel('Target',ptT,'#ffffff',new V(0,1.3,0));
+
+  // ---- UI ----
+  var step=1;
+  var stepsEl=document.getElementById('steps'),cap=document.getElementById('caption'),statusEl=document.getElementById('status');
+  var LABELS=['1 sphere','2 spheres','3 spheres','4 spheres'];
+  var btns=[];
+  LABELS.forEach(function(t,k){
+    var b=document.createElement('button'); b.type='button'; b.textContent=t;
+    b.addEventListener('click',function(){
+      var old=step; step=k+1; seq=null;
+      for(var j=old;j<step;j++)placeCentre(j);
+      refresh();
+      if(step>old&&!lockGoal)frameSpheres();
+    });
+    stepsEl.appendChild(b); btns.push(b);
+  });
+  // when a sphere is first switched on, make sure its centre sits well clear of the spheres already showing
+  function centreOk(pos,j){
+    for(var i=0;i<j;i++)if(pos.distanceTo(A[i])<Rad[i]+1.6)return false;
+    if(j===2){
+      var ab=new V().subVectors(A[1],A[0]);
+      if(new V().crossVectors(new V().subVectors(pos,A[0]),ab).length()/ab.length()<1)return false;
+    }
+    if(j===3){
+      var nn=new V().crossVectors(new V().subVectors(A[1],A[0]),new V().subVectors(A[2],A[0])).normalize();
+      if(Math.abs(new V().subVectors(pos,A[0]).dot(nn))<1.2)return false;
+    }
+    return true;
+  }
+  function placeCentre(j){
+    if(centreOk(A[j],j))return;
+    var best=null,bestScore=1e9,N=160,ga=Math.PI*(3-Math.sqrt(5));
+    for(var n=0;n<N;n++){
+      var yy=1-2*(n+.5)/N,rr=Math.sqrt(1-yy*yy),th=n*ga;
+      var d=new V(Math.cos(th)*rr,yy,Math.sin(th)*rr);
+      for(var t=2.6;t<=14;t+=.2){
+        var pos=P.clone().addScaledVector(d,t);
+        if(!centreOk(pos,j))continue;
+        var score=t+.15*pos.distanceTo(A[j]);
+        if(score<bestScore){bestScore=score;best=pos}
+        break;
+      }
+    }
+    if(!best)return;
+    A[j].copy(best); spheres[j].position.copy(best);
+    R0[j]=A[j].distanceTo(P);
+    if(!manual[j]){Rad[j]=R0[j];inputs[j].value=R0[j].toFixed(2);outs[j].textContent=R0[j].toFixed(2)}
+  }
+  var slidersEl=document.getElementById('sliders'),rows=[],inputs=[],outs=[];
+  NAMES.forEach(function(nm,k){
+    var row=document.createElement('label'); row.className='row'; row.title=nm+': '+DESC[k];
+    var b=document.createElement('b'); b.textContent=nm+' \u00b7 '+DESC[k]; b.style.color=hex(COL[k]);
+    var inp=document.createElement('input'); inp.type='range'; inp.min='0'; inp.max='6.5'; inp.step='0.01'; inp.value=R0[k].toFixed(2);
+    inp.style.accentColor=hex(COL[k]); inp.setAttribute('aria-label','Radius of sphere '+nm);
+    var out=document.createElement('output'); out.textContent=R0[k].toFixed(2);
+    inp.addEventListener('input',function(){Rad[k]=parseFloat(inp.value);manual[k]=Math.abs(Rad[k]-R0[k])>.015;out.textContent=Rad[k].toFixed(2);refresh()});
+    row.appendChild(b);row.appendChild(inp);row.appendChild(out);slidersEl.appendChild(row);
+    rows.push(row);inputs.push(inp);outs.push(out);
+  });
+  var reset=document.createElement('button'); reset.type='button'; reset.className='reset'; reset.textContent='Solve';
+  reset.addEventListener('click',function(){
+    for(var k=0;k<4;k++){
+      R0[k]=A[k].distanceTo(P);
+      if(k>=step)continue;            // only the spheres in the active scenario are solved
+      Rad[k]=R0[k]; manual[k]=false;
+      inputs[k].value=R0[k].toFixed(2); outs[k].textContent=R0[k].toFixed(2);
+    }
+    refresh();
+    if(!lockGoal)frameSpheres();
+    if(step===2||step===3)startTour();
+  });
+  // zoom out (never in) so the shown spheres fill at most half of the screen, and centre them
+  function frameSpheres(exact){
+    camRate=.07; seq=null;
+    var c=new V(),k;
+    for(k=0;k<step;k++)c.add(A[k]);
+    c.divideScalar(step);
+    var rb=0;
+    for(k=0;k<step;k++)rb=Math.max(rb,A[k].distanceTo(c)+(exact?R0[k]:Rad[k]));
+    var aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight);
+    var th=Math.tan(camera.fov*Math.PI/360)*Math.min(1,aspect);
+    var d=rb/Math.sin(Math.atan(th/2));
+    camGoal=Math.min(90,Math.max(camGoal,d));
+    pivGoal.copy(c).negate();
+  }
+  var zero=document.createElement('button'); zero.type='button'; zero.className='reset'; zero.textContent='Reset';
+  zero.addEventListener('click',function(){
+    A[0].copy(P).addScaledVector(new V(-2,1.6,0).normalize(),4.4); spheres[0].position.copy(A[0]); R0[0]=A[0].distanceTo(P);
+    for(var k=0;k<4;k++){Rad[k]=0;manual[k]=true;inputs[k].value='0';outs[k].textContent=(0).toFixed(2)}
+    step=1;
+    refresh();
+  });
+  var btnRow=document.createElement('div'); btnRow.className='btns';
+  btnRow.appendChild(zero); btnRow.appendChild(reset);
+  slidersEl.appendChild(btnRow);
+
+  var CAP=[
+    'One distance says only that the target is somewhere on this sphere. The diamond roams every possibility.',
+    'A second distance limits it to the circle where the two surfaces cross. The diamond roams that circle.',
+    'A third leaves two candidates: mirror images across the plane through the three centres.'
+  ];
+  function f(x){return x.toFixed(2)}
+
+  // ---- recompute everything the radii affect ----
+  function refresh(){
+    var k;
+    if(step!==prevStep){Tstart.copy(Tcur);tBlend=0;prevStep=step;clearTrail()}
+    for(k=0;k<4;k++){
+      bodies[k].scale.setScalar(Math.max(Rad[k],1e-4)); updateRay(k);
+      spheres[k].userData.goal=k<step?1:0;
+      rows[k].classList.toggle('off',k>=step); inputs[k].disabled=(k>=step)||animBusy;
+    }
+    circles.forEach(function(m){updateCircle(m);m.userData.goal=(m.userData.valid&&step>=m.userData.min)?1:0});
+    btns.forEach(function(b,k){b.setAttribute('aria-pressed',String(k+1===step))});
+
+    var sol=solve(),best=-1,err4=0,off=0;
+    curSol=sol;
+    if(sol){
+      var e=sol.map(function(c){return Math.abs(c.distanceTo(A[3])-Rad[3])});
+      best=e[0]<=e[1]?0:1; err4=e[best]; off=sol[best].distanceTo(P);
+      cands[0].position.copy(sol[0]); cands[1].position.copy(sol[1]); curBest=best;
+    }
+    cands[0].userData.goal=(sol&&step===3)?1:0;
+    cands[1].userData.goal=(sol&&step===3)?1:0;
+    lockGoal=(step===4&&sol&&err4<.06&&off<.08)?1:0;
+
+    // caption and status
+    var msg='';
+    if(step<4)cap.textContent=CAP[step-1];
+    else cap.textContent=lockGoal?'The fourth sphere touches only one of them. Target found.':'With these radii the spheres no longer agree on the target.';
+    if(step>=2&&!circles[0].userData.valid)msg='A and B do not touch, so no point fits both distances.';
+    else if(step>=3&&!sol)msg='A, B and C share no point at these radii.';
+    else if(step===4&&sol){
+      if(lockGoal)msg='All four distances agree.';
+      else if(err4<.06)msg='All four agree, but on a point '+f(off)+' from the target.';
+      else msg='Sphere D misses the best fit by '+f(err4)+'. That point is '+f(off)+' from the target.';
+    }
+    statusEl.textContent=msg;
+    updateEq();
+  }
+  // live equation for each sphere that is showing, from its current centre and radius
+  var eqRows=[];
+  (function(){
+    var host=document.getElementById('eqRows');
+    for(var k=0;k<4;k++){
+      var row=document.createElement('div'); row.className='eqrow'; row.title=NAMES[k]+': '+DESC[k];
+      var b=document.createElement('b'); b.textContent=NAMES[k]; b.style.color=hex(COL[k]);
+      var t=document.createElement('span');
+      row.appendChild(b); row.appendChild(t); host.appendChild(row); eqRows.push({row:row,t:t});
+    }
+  })();
+  function eqTerm(axis,v){
+    var a=Math.abs(v);
+    if(a<.005)return axis+'\u00b2';
+    return '('+axis+(v<0?' + ':' \u2212 ')+a.toFixed(2)+')\u00b2';
+  }
+  function updateEq(){
+    for(var k=0;k<4;k++){
+      eqRows[k].row.style.display=k<step?'':'none';
+      eqRows[k].t.textContent=eqTerm('x',A[k].x)+' + '+eqTerm('y',A[k].y)+' + '+eqTerm('z',A[k].z)+' = '+Rad[k].toFixed(2)+'\u00b2';
+    }
+  }
+  zero.click();   // start in the Reset state: radii at 0, 1 sphere, A away from the target
+  refresh();
+  [].concat(spheres,circles,cands).forEach(function(o){o.userData.s=o.userData.goal;o.scale.setScalar(Math.max(o.userData.s,.0001));o.visible=o.userData.s>.01});
+  lock=lockGoal;
+
+  // ---- theme ----
+  var lastDark=null;
+  function applyTheme(){
+    var d=isDark(); if(d===lastDark)return; lastDark=d;
+    var c=d?0xeef0f8:0x161b2e;
+    inkMats.forEach(function(m){m.color.setHex(c)});
+    gridMat.uniforms.uColor.value.setHex(d?0x3fd5ff:0x3b5bdb);
+    gridMat.uniforms.uAlpha.value=d?.9:.55;
+    starMat.opacity=d?.85:0;
+  }
+
+  // ---- interaction ----
+  var dragging=false,lx=0,ly=0;
+  var spin=!reduce;
+  var dwell=3.6,dwellEl=document.getElementById('dwell'),dwellOut=document.getElementById('dwellOut');
+  dwellEl.addEventListener('input',function(){dwell=parseFloat(dwellEl.value);dwellOut.textContent=dwell.toFixed(1)+' s'});
+  var spinSpeed=.25,speedEl=document.getElementById('spinSpeed'),speedOut=document.getElementById('spinSpeedOut');
+  speedEl.addEventListener('input',function(){var pct=parseFloat(speedEl.value);spinSpeed=pct/100;speedOut.textContent=Math.round(pct)+'%'});
+  var spinRadios=document.querySelectorAll('#spin input[type=radio]');
+  Array.prototype.forEach.call(spinRadios,function(r){
+    r.checked=(r.value==='on')===spin;
+    r.addEventListener('change',function(){if(r.checked)spin=(r.value==='on')});
+  });
+  var caster=new THREE.Raycaster(),ndc=new THREE.Vector2(),dragIdx=-1,dragPlane=new THREE.Plane(),dragOff=new V(),hitPt=new V(),dirV=new V();
+  function setNdc(e){var r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);caster.setFromCamera(ndc,camera)}
+  function pickCentre(e){
+    if(animBusy)return null;
+    setNdc(e);
+    var list=[];
+    list.push(ptT.userData.hit);
+    for(var k=0;k<4;k++)if(spheres[k].userData.s>.5)list.push(hits[k]);
+    var h=caster.intersectObjects(list,false);
+    return h.length?{idx:h[0].object===ptT.userData.hit?4:hits.indexOf(h[0].object)}:null;
+  }
+  function moveTarget(pos){
+    var np=pos.clone(); if(np.length()>3.5)np.setLength(3.5);
+    P.copy(np); ptT.position.copy(P);
+    for(var k=0;k<4;k++){
+      R0[k]=A[k].distanceTo(P);
+      if(!manual[k]){Rad[k]=R0[k];inputs[k].value=R0[k].toFixed(2);outs[k].textContent=R0[k].toFixed(2)}
+    }
+    refresh();
+  }
+  function moveCentre(i,pos){
+    var off=pos.clone().sub(P),len=off.length();
+    if(len>5.4)off.multiplyScalar(5.4/len); else if(len<.8&&len>1e-6)off.multiplyScalar(.8/len);
+    A[i].copy(P).add(off); spheres[i].position.copy(A[i]);
+    R0[i]=A[i].distanceTo(P);
+    if(!manual[i]){Rad[i]=R0[i];inputs[i].value=R0[i].toFixed(2);outs[i].textContent=R0[i].toFixed(2)}
+    refresh();
+  }
+  canvas.addEventListener('pointerdown',function(e){
+    canvas.setPointerCapture(e.pointerId);
+    var pk=pickCentre(e);
+    if(pk){
+      dragIdx=pk.idx;
+      var aw=(dragIdx===4?ptT:spheres[dragIdx]).getWorldPosition(new V());
+      camera.getWorldDirection(dirV);
+      dragPlane.setFromNormalAndCoplanarPoint(dirV,aw);
+      if(caster.ray.intersectPlane(dragPlane,hitPt))dragOff.copy(aw).sub(hitPt); else dragOff.set(0,0,0);
+      canvas.style.cursor='grabbing';
+    }else{dragging=true;lx=e.clientX;ly=e.clientY}
+  });
+  canvas.addEventListener('pointermove',function(e){
+    if(dragIdx>=0){
+      setNdc(e);
+      if(caster.ray.intersectPlane(dragPlane,hitPt)){
+        var lp=pivot.worldToLocal(hitPt.add(dragOff));
+        if(dragIdx===4)moveTarget(lp); else moveCentre(dragIdx,lp);
+      }
+      return;
+    }
+    if(!dragging){canvas.style.cursor=pickCentre(e)?'move':'';return}
+    world.rotation.y+=(e.clientX-lx)*.008;
+    world.rotation.x=Math.max(-1.3,Math.min(1.3,world.rotation.x+(e.clientY-ly)*.008));
+    lx=e.clientX;ly=e.clientY;
+  });
+  function up(){dragging=false;dragIdx=-1;canvas.style.cursor=''}
+  canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('wheel',function(e){
+    e.preventDefault();
+    camRate=.07; seq=null;
+    camGoal=Math.max(6,Math.min(90,camGoal+e.deltaY*.01*Math.max(1,camGoal/11.5)));
+  },{passive:false});
+
+  // ---- full animation: from Reset, grow each sphere's radius until it reaches the target, one scenario at a time ----
+  var GROW=5,INTRO=1.4,SETTLE=1.2,HOLD1=2.5,FINAL=5;
+  var modeRadios=document.querySelectorAll('#modeBox input[type=radio]'),playBtn=document.getElementById('playBtn');
+  function setRad(k,v){Rad[k]=v;inputs[k].value=v.toFixed(2);outs[k].textContent=v.toFixed(2)}
+  function setBusy(b){
+    animBusy=b;
+    btns.forEach(function(x){x.disabled=b});
+    reset.disabled=b; zero.disabled=b;
+    refresh();
+  }
+  function updateModeUI(){
+    playBtn.style.display=autoMode?'':'none';
+    playBtn.textContent=animBusy?'Stop':'Replay';
+  }
+  function beginSphere(k){
+    step=k+1; seq=null;
+    if(k>0)placeCentre(k);
+    setRad(k,0); manual[k]=true;
+    refresh();
+    frameSpheres(true);
+  }
+  function startAnim(){
+    zero.click();                                  // Reset: radii 0, one sphere, A away from the target
+    for(var k=1;k<4;k++){A[k].copy(A0[k]);spheres[k].position.copy(A[k]);R0[k]=A[k].distanceTo(P)}
+    seq=null; autoZoomed=false; camGoal=14; pivGoal.set(-.3,-.2,-.3); camRate=.07;
+    setBusy(true);
+    if(animKind==='overlap'){
+      // put every centre well clear of the others up front, and frame the final picture once
+      for(k=0;k<4;k++)Rad[k]=R0[k];
+      for(k=1;k<4;k++)placeCentre(k);
+      for(k=0;k<4;k++)setRad(k,0);
+      step=4; frameSpheres(true); step=1;
+      refresh();
+      anim={kind:'overlap',t0:clockT,on:[false,false,false,false],done:[false,false,false,false],fin:false,tf:0};
+    }else{
+      beginSphere(0);
+      anim={kind:'seq',k:0,phase:'intro',t0:clockT};
+    }
+    updateModeUI();
+  }
+  function stopAnim(){
+    anim=null; seq=null; camRate=.07;
+    setBusy(false);
+    updateModeUI();
+  }
+  function finishAnim(){          // end of the run: hand the controls back, leave the camera where it is
+    anim=null;
+    setBusy(false);
+    updateModeUI();
+  }
+  function nextSphere(t){
+    var k=anim.k+1;
+    if(k>3){finishAnim();return}
+    anim.k=k; beginSphere(k); anim.phase='intro'; anim.t0=t;
+  }
+  var STAG=2.2;   // seconds between one sphere starting and the next (each takes GROW seconds, so they overlap)
+  function overlapTick(t){
+    var a=anim,el=t-a.t0-INTRO;
+    if(el<0)return;
+    var allDone=true;
+    for(var k=0;k<4;k++){
+      var local=el-k*STAG;
+      if(local<0){allDone=false;continue}
+      if(!a.on[k]){a.on[k]=true;step=Math.max(step,k+1);manual[k]=true}
+      var u=Math.min(1,local/GROW),e=u*u*(3-2*u);
+      if(u<1){allDone=false;setRad(k,R0[k]*e)}
+      else if(!a.done[k]){setRad(k,R0[k]);manual[k]=false;a.done[k]=true}
+    }
+    refresh();
+    if(allDone){
+      if(!a.fin){a.fin=true;a.tf=t}
+      else if(t-a.tf>FINAL)finishAnim();
+    }
+  }
+  function animTick(t){
+    if(anim.kind==='overlap'){overlapTick(t);return}
+    var a=anim,el=t-a.t0,k=a.k;
+    if(a.phase==='intro'){
+      if(el>INTRO){a.phase='grow';a.t0=t}
+    }else if(a.phase==='grow'){
+      var u=Math.min(1,el/GROW),e=u*u*(3-2*u);
+      setRad(k,R0[k]*e); refresh();
+      if(u>=1){setRad(k,R0[k]);manual[k]=false;refresh();a.phase='settle';a.t0=t}
+    }else if(a.phase==='settle'){
+      if(el>SETTLE){
+        if(step===2||step===3){startTour();a.phase='tour'}
+        else if(step===1)a.phase='hold';
+        else a.phase='final';
+        a.t0=t;
+      }
+    }else if(a.phase==='tour'){
+      if(!seq)nextSphere(t);
+    }else if(a.phase==='hold'){
+      if(el>HOLD1)nextSphere(t);
+    }else if(a.phase==='final'){
+      if(el>FINAL)finishAnim();
+    }
+  }
+  Array.prototype.forEach.call(modeRadios,function(r){
+    r.addEventListener('change',function(){
+      if(!r.checked)return;
+      animKind=(r.value==='auto')?'seq':(r.value==='overlap'?'overlap':'');
+      autoMode=!!animKind;
+      if(autoMode)startAnim(); else {stopAnim()}
+      updateModeUI();
+    });
+  });
+  playBtn.addEventListener('click',function(){
+    if(animBusy){
+      Array.prototype.forEach.call(modeRadios,function(r){r.checked=(r.value==='manual')});
+      autoMode=false; animKind=''; stopAnim();
+    }else startAnim();
+  });
+
+  // after solving 2 or 3 spheres: glide in on the target and what is still uncertain (a circle, or two points), hold, then back out
+  function startTour(){
+    var c=new V(),rb;
+    if(step===2){
+      var u=circles[0].userData;
+      if(!u.valid)return;
+      c.copy(u.c); rb=u.h+.3;
+    }else{
+      if(!curSol)return;
+      c.copy(curSol[0]).add(curSol[1]).multiplyScalar(.5);
+      rb=Math.max(1.4,curSol[0].distanceTo(curSol[1])/2+1.0);
+    }
+    var aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight);
+    var th=Math.tan(camera.fov*Math.PI/360)*Math.min(1,aspect);
+    var dIn=Math.max(ZMIN,Math.min(ZMAX,rb/Math.sin(Math.atan(th*.8))));
+    if(dIn>=camGoal*.95)return;                   // nothing to zoom in on
+    seq={phase:'in',t0:clockT,prevCam:camGoal,prevPiv:pivGoal.clone()};
+    camGoal=dIn; pivGoal.copy(c).negate(); camRate=.015;
+  }
+  // once solved, glide in on the target, close enough to read it but wide enough to keep the white circles in view
+  function zoomToTarget(){
+    seq=null;
+    var rb=1.4;                                   // always keep the pin and its label in frame
+    circles.forEach(function(m){
+      var u=m.userData;
+      if(u.valid&&u.goal===1)rb=Math.max(rb,u.c.distanceTo(P)+u.h);
+    });
+    var aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight);
+    var th=Math.tan(camera.fov*Math.PI/360)*Math.min(1,aspect);
+    camGoal=Math.max(ZMIN,Math.min(ZMAX,rb/Math.sin(Math.atan(th*.8))));
+    pivGoal.copy(P).negate();
+    camRate=.015;
+  }
+  // vertical zoom slider (top = closer). It mirrors the wheel and the Solve auto-framing.
+  var zoomEl=document.getElementById('zoom'),zoomHeld=false,ZMIN=6,ZMAX=90;
+  function camToSlider(d){return 100*Math.log(ZMAX/d)/Math.log(ZMAX/ZMIN)}
+  zoomEl.addEventListener('pointerdown',function(){zoomHeld=true});
+  window.addEventListener('pointerup',function(){zoomHeld=false});
+  zoomEl.addEventListener('input',function(){camRate=.07;seq=null;camGoal=ZMAX*Math.pow(ZMIN/ZMAX,parseFloat(zoomEl.value)/100)});
+  function resize(){
+    var w=canvas.clientWidth,h=canvas.clientHeight;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.fov=w<h?56:38;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',resize);resize();
+
+  var tmp=new V(),t0=performance.now();
+  function frame(now){
+    requestAnimationFrame(frame);
+    applyTheme();
+    var t=(now-t0)/1000;
+    clockT=t;
+    camera.position.z+=(camGoal-camera.position.z)*camRate;
+    if(!zoomHeld)zoomEl.value=camToSlider(camGoal).toFixed(1);
+    pivot.position.lerp(pivGoal,camRate);
+    if(spin&&!dragging&&dragIdx<0)world.rotation.y+=.0022*spinSpeed;
+    var all=[].concat(spheres,circles,cands);
+    all.forEach(function(o){
+      var u=o.userData; u.s+=(u.goal-u.s)*.14;
+      if(Math.abs(u.goal-u.s)<.002)u.s=u.goal;
+      o.scale.setScalar(Math.max(u.s,.0001)); o.visible=u.s>.01;
+    });
+    var dt=Math.min(.05,Math.max(0,(now-lastNow)/1000)); lastNow=now;
+    // where the target may be, given the spheres shown so far
+    var tp=null,goalVis=0,hop=1;
+    if(step===1){
+      var th=Math.PI/2+1.1*Math.sin(t*.5),ph=t*.8+Math.sin(t*.31)*1.2;
+      tp=new V(Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph)).multiplyScalar(Rad[0]).add(A[0]); goalVis=1;
+    }else if(step===2){
+      var cu=circles[0].userData;
+      if(cu.valid){var ca=t*.9;tp=cu.c.clone().addScaledVector(cu.v,Math.cos(ca)*cu.h).addScaledVector(cu.w,Math.sin(ca)*cu.h);goalVis=1}
+    }else if(step===3){
+      if(curSol){
+        var cyc=2.4,idx=Math.floor(t/cyc)%2,pp=(t%cyc)/cyc;
+        tp=curSol[idx]; hop=Math.min(1,pp/.1,(1-pp)/.1); goalVis=1;
+      }
+    }else{
+      if(curSol){tp=curSol[curBest];goalVis=1}
+    }
+    if(tp){tBlend=Math.min(1,tBlend+dt/.7);var ee=tBlend*tBlend*(3-2*tBlend);Tcur.copy(Tstart).lerp(tp,ee)}
+    tVis+=(goalVis-tVis)*.15;
+    var vis=tVis*hop;
+    ptP.position.copy(Tcur); ptP.scale.setScalar(Math.max(vis,.0001)); ptP.visible=vis>.01; ptP.userData.s=vis;
+    for(var rk=0;rk<4;rk++)updateRay(rk);
+    if(step<=2){
+      hist.copyWithin(3,0,TN*3); hist[0]=Tcur.x;hist[1]=Tcur.y;hist[2]=Tcur.z;
+      for(var tk=0;tk<TN;tk++){
+        var b=tk*6,h0=tk*3;
+        trailPos[b]=hist[h0];trailPos[b+1]=hist[h0+1];trailPos[b+2]=hist[h0+2];
+        trailPos[b+3]=hist[h0+3];trailPos[b+4]=hist[h0+4];trailPos[b+5]=hist[h0+5];
+      }
+      trailGeo.attributes.position.needsUpdate=true;
+    }
+    trail.visible=step<=2&&vis>.05;
+    lock+=(lockGoal-lock)*.09;
+    if(seq){
+      var el=t-seq.t0,near=Math.abs(camera.position.z-camGoal)<.04*camGoal;
+      if(seq.phase==='in'&&((near&&el>.5)||el>5)){seq.phase='hold';seq.t0=t}
+      else if(seq.phase==='hold'&&el>dwell){seq.phase='out';seq.t0=t;camGoal=seq.prevCam;pivGoal.copy(seq.prevPiv);camRate=.015}
+      else if(seq.phase==='out'&&((near&&el>.5)||el>5)){seq=null;camRate=.07}
+    }
+    if(anim)animTick(t);
+    if(lock>.9&&!autoZoomed){autoZoomed=true;zoomToTarget()}
+    if(lockGoal===0&&lock<.5)autoZoomed=false;
+    var op=1;
+    targetMats.forEach(function(m){m.opacity=op});
+    var tu=ptP.userData;
+    tu.halo.material.opacity=.22+.3*lock;
+    if(!reduce){tu.gem.rotation.y+=.012;tu.gimbal.rotation.y+=.006;tu.gimbal.rotation.x+=.004}
+    renderer.render(scene,camera);
+    var w=canvas.clientWidth,h=canvas.clientHeight;
+    labels.forEach(function(l){
+      l.obj.getWorldPosition(tmp); tmp.add(l.offset.clone().applyQuaternion(world.quaternion));
+      tmp.project(camera);
+      l.el.style.transform='translate('+((tmp.x*.5+.5)*w)+'px,'+((-tmp.y*.5+.5)*h)+'px) translate(-50%,-100%)';
+      if(l.obj===ptP)l.el.textContent=lock>.6?'Solved':'?';
+      l.el.style.opacity=l.obj.visible&&l.obj.userData.s>.5?1:0;
+    });
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
